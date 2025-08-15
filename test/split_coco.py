@@ -55,8 +55,8 @@ def split_coco_annotations(annotation_file, output_dir):
 # --- 使用方法 ---
 if __name__ == '__main__':
     # 设置你的文件路径
-    original_annotation_path = 'path/to/your/instances_train2017.json'
-    output_directory = 'path/to/your/split_annotations/'
+    original_annotation_path = 'datasets/data/FASDD_CV/annotations/COCO_CV/Annotations/test.json'
+    output_directory = 'test/splitted_annotations/FASDD_CV_test'
 
     # 运行分割函数
     split_coco_annotations(original_annotation_path, output_directory)

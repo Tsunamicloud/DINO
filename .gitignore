@@ -25,4 +25,9 @@ model_zoo/
 model_zoo_old/
 scripts/
 
-.idea
+.idea/
+
+coco_smoke/
+coco_smoke_merged/
+test/splitted_annotations/
+pretrained_models/
