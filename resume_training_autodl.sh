@@ -34,6 +34,7 @@ python main.py \
     --coco_path ./coco_smoke_merged \
     --pretrain_model_path ./pretrained_models/checkpoint0011_4scale.pth \
     --finetune_ignore label_enc.weight class_embed \
+    --num_workers 16 \
     --options \
         dn_scalar=100 \
         embed_init_tgt=TRUE \
