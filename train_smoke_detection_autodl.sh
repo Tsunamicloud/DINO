@@ -18,5 +18,6 @@ python main.py \
         dn_bbox_coef=1.0 \
         use_ema=False \
         dn_box_noise_scale=1.0 \
+        epochs=10 \
 
 echo "训练完成！检查 logs/DINO/smoke_detection 目录查看结果"

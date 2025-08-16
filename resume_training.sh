@@ -41,5 +41,6 @@ python main.py \
         dn_bbox_coef=1.0 \
         use_ema=False \
         dn_box_noise_scale=1.0
+        epochs=12
 
 echo "✅ 训练完成！"

@@ -111,28 +111,20 @@ def organize_for_dino(merged_dir, split):
 
 def main():
     # --- !! IMPORTANT: PLEASE VERIFY THESE PATHS !! ---
-    base_dir = 'datasets/data'
+    base_dir = '/home/datasets/data'
     
     # Define your source datasets
     datasets_to_merge_train = [
         {
-            "images_dir": os.path.join(base_dir, 'FASDD_CV/images'),
-            "ann_file": os.path.join(base_dir, 'FASDD_CV/annotations/COCO_CV/Annotations/train.json')
-        },
-        {
-            "images_dir": os.path.join(base_dir, 'FASDD_UAV/images'),
-            "ann_file": os.path.join(base_dir, 'FASDD_UAV/annotations/COCO_UAV/Annotations/train.json')
+            "images_dir": os.path.join(base_dir, 'FASDD_Reorganized/images'),
+            "ann_file": os.path.join(base_dir, 'FASDD_Reorganized/annotations/train.json')
         }
     ]
     
     datasets_to_merge_val = [
         {
-            "images_dir": os.path.join(base_dir, 'FASDD_CV/images'),
-            "ann_file": os.path.join(base_dir, 'FASDD_CV/annotations/COCO_CV/Annotations/val.json')
-        },
-        {
-            "images_dir": os.path.join(base_dir, 'FASDD_UAV/images'),
-            "ann_file": os.path.join(base_dir, 'FASDD_UAV/annotations/COCO_UAV/Annotations/val.json')
+            "images_dir": os.path.join(base_dir, 'FASDD_Reorganized/images'),
+            "ann_file": os.path.join(base_dir, 'FASDD_Reorganized/annotations/val.json')
         }
     ]
     
