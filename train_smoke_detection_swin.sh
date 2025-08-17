@@ -18,7 +18,7 @@ GPU_COUNT=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
 echo "检测到 $GPU_COUNT 个GPU"
 
 # 确保预训练模型存在
-PRETRAINED_MODEL="./pretrained_models/checkpoint0011_4scale.pth"
+PRETRAINED_MODEL="./pretrained_models/checkpoint0011_4scale_swin.pth"
 SWIN_PRETRAINED="./pretrained_models/swin_large_patch4_window12_384_22k.pth"
 
 if [ ! -f "$PRETRAINED_MODEL" ]; then
@@ -37,7 +37,7 @@ if [ ! -f "$SWIN_PRETRAINED" ]; then
 fi
 
 # 检查数据集路径
-DATASET_PATH="./smoke_dataset"
+DATASET_PATH="./coco_smoke_merged"
 if [ ! -d "$DATASET_PATH" ]; then
     echo "错误: 数据集路径不存在: $DATASET_PATH"
     echo "请确保您的COCO格式烟雾数据集位于该路径"
