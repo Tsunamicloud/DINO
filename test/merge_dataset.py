@@ -111,7 +111,7 @@ def organize_for_dino(merged_dir, split):
 
 def main():
     # --- !! IMPORTANT: PLEASE VERIFY THESE PATHS !! ---
-    base_dir = 'datasets/data'
+    base_dir = 'datasets/data/FASDD_DFire_Dataset'
     
     # Define your source datasets
     datasets_to_merge_train = [
