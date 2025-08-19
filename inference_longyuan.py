@@ -37,7 +37,7 @@ def inference_batch_longyuan():
         "datasets/data/longyuan_dataset/input_data/B组/images"
     ]
     
-    output_base_dir = "datasets/data/longyuan_dataset/output_DINO_results"
+    output_base_dir = "datasets/data/longyuan_dataset/DINO_output_results"
     os.makedirs(output_base_dir, exist_ok=True)
     
     # Detection threshold
