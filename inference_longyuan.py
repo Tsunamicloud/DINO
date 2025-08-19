@@ -76,17 +76,39 @@ def inference_batch_longyuan():
                 # 模型推理
                 with torch.no_grad():
                     output = model(processed_image[None].cuda())
-                    # 传入原始图像尺寸 [height, width] 格式
-                    target_sizes = torch.tensor([[original_size[1], original_size[0]]]).cuda()  # [height, width]
-                    output = postprocessors['bbox'](output, target_sizes)[0]
+                    output = postprocessors['bbox'](output, torch.Tensor([[1.0, 1.0]]).cuda())[0]
                 
-                # 获取预测结果 - 现在已经是绝对像素坐标
+                # 获取预测结果
                 scores = output['scores']
                 labels = output['labels']
-                boxes = output['boxes']  # 绝对像素坐标，XYXY格式
+                boxes = output['boxes']  # 这里已经是 XYXY 格式
                 
                 # 应用阈值过滤
                 select_mask = scores > threshold
+                
+                if select_mask.sum() > 0:
+                    # 过滤后的结果
+                    filtered_scores = scores[select_mask]
+                    filtered_labels = labels[select_mask]
+                    filtered_boxes = boxes[select_mask]
+                    
+                    # 将坐标从缩放后的图片尺寸转换回原始图片尺寸
+                    # processed_image.shape: [C, H, W]
+                    processed_h, processed_w = processed_image.shape[1], processed_image.shape[2]
+                    scale_x = original_size[0] / processed_w  # width scale
+                    scale_y = original_size[1] / processed_h  # height scale
+                    
+                    # 转换坐标到原始图片尺寸
+                    filtered_boxes[:, 0] *= scale_x  # x1
+                    filtered_boxes[:, 1] *= scale_y  # y1
+                    filtered_boxes[:, 2] *= scale_x  # x2
+                    filtered_boxes[:, 3] *= scale_y  # y2
+                    
+                    # 确保坐标在合理范围内
+                    filtered_boxes[:, 0] = torch.clamp(filtered_boxes[:, 0], 0, original_size[0])
+                    filtered_boxes[:, 1] = torch.clamp(filtered_boxes[:, 1], 0, original_size[1])
+                    filtered_boxes[:, 2] = torch.clamp(filtered_boxes[:, 2], 0, original_size[0])
+                    filtered_boxes[:, 3] = torch.clamp(filtered_boxes[:, 3], 0, original_size[1])
                 
                 # 准备输出文件
                 image_name = os.path.splitext(os.path.basename(image_path))[0]
@@ -95,10 +117,6 @@ def inference_batch_longyuan():
                 # 写入检测结果
                 with open(output_txt_path, 'w') as f:
                     if select_mask.sum() > 0:
-                        filtered_scores = scores[select_mask]
-                        filtered_labels = labels[select_mask]
-                        filtered_boxes = boxes[select_mask]
-                        
                         for j in range(len(filtered_scores)):
                             # 格式: 类别代码(0) x1 y1 x2 y2 置信度
                             # 因为是烟雾检测，类别代码统一为0
@@ -106,16 +124,7 @@ def inference_batch_longyuan():
                             x1, y1, x2, y2 = filtered_boxes[j].cpu().numpy()
                             confidence = filtered_scores[j].cpu().item()
                             
-                            # 确保坐标为整数像素值
-                            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-                            
-                            # 确保坐标在图像范围内
-                            x1 = max(0, min(x1, original_size[0]))
-                            y1 = max(0, min(y1, original_size[1]))
-                            x2 = max(0, min(x2, original_size[0]))
-                            y2 = max(0, min(y2, original_size[1]))
-                            
-                            f.write(f"{class_id} {x1} {y1} {x2} {y2} {confidence:.4f}\n")
+                            f.write(f"{class_id} {x1:.2f} {y1:.2f} {x2:.2f} {y2:.2f} {confidence:.4f}\n")
                 
                 # 打印进度
                 if (i + 1) % 10 == 0 or (i + 1) == len(image_files):
