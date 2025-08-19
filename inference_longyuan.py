@@ -5,8 +5,8 @@ from glob import glob
 
 from main import build_model_main
 from util.slconfig import SLConfig
-from datasets import build_dataset
-from util.visualizer import COCOVisualizer
+# from datasets import build_dataset
+# from util.visualizer import COCOVisualizer
 from util import box_ops
 
 from PIL import Image
