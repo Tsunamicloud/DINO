@@ -5,8 +5,6 @@ from glob import glob
 
 from main import build_model_main
 from util.slconfig import SLConfig
-# from datasets import build_dataset
-# from util.visualizer import COCOVisualizer
 from util import box_ops
 
 from PIL import Image
@@ -14,8 +12,8 @@ import datasets.transforms as T
 
 def inference_batch_longyuan():
     # Model configuration
-    model_config_path = "config/DINO/DINO_4scale_swin_FASDD_DFire_dist.py"  # 您的模型配置文件路径
-    model_checkpoint_path = "logs/DINO/checkpoint0009.pth"  # 您的模型权重文件路径
+    model_config_path = "config/DINO/DINO_4scale_swin_FASDD_DFire_dist.py" # 模型配置文件路径
+    model_checkpoint_path = "logs/DINO/checkpoint0009.pth" # 模型权重文件路径
     
     # Load model
     args = SLConfig.fromfile(model_config_path) 
@@ -26,7 +24,7 @@ def inference_batch_longyuan():
     model = model.cuda()
     _ = model.eval()
     
-    # Image preprocessing
+    # Image preprocessing - 修改变换以获取实际尺寸信息
     transform = T.Compose([
         T.RandomResize([800], max_size=1333),
         T.ToTensor(),
@@ -43,7 +41,7 @@ def inference_batch_longyuan():
     os.makedirs(output_base_dir, exist_ok=True)
     
     # Detection threshold
-    threshold = 0.5  # 您可以根据需要调整阈值
+    threshold = 0.5 # 可以根据需要调整阈值
     
     print("开始批量推理...")
     
@@ -53,7 +51,7 @@ def inference_batch_longyuan():
             continue
             
         # 获取目录名称用于输出文件夹命名
-        group_name = input_dir.split(os.sep)[-2]  # A组 或 B组
+        group_name = input_dir.split(os.sep)[-2] # A组 或 B组
         output_dir = os.path.join(output_base_dir, group_name)
         os.makedirs(output_dir, exist_ok=True)
         
@@ -68,12 +66,26 @@ def inference_batch_longyuan():
         
         for i, image_path in enumerate(image_files):
             try:
-                # 加载和预处理图片
+                # 加载图片
                 image = Image.open(image_path).convert("RGB")
-                original_size = image.size  # (width, height)
+                original_width, original_height = image.size
                 
-                # 图片变换
-                processed_image, _ = transform(image, None)
+                # 手动应用变换以跟踪尺寸变化
+                # 首先应用 RandomResize
+                resize_transform = T.RandomResize([800], max_size=1333)
+                resized_image, _ = resize_transform(image, None)
+                resized_width, resized_height = resized_image.size
+                
+                # 然后应用其他变换
+                tensor_transform = T.Compose([
+                    T.ToTensor(),
+                    T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+                ])
+                processed_image, _ = tensor_transform(resized_image, None)
+                
+                # 计算缩放比例
+                scale_x = original_width / resized_width
+                scale_y = original_height / resized_height
                 
                 # 模型推理
                 with torch.no_grad():
@@ -83,34 +95,10 @@ def inference_batch_longyuan():
                 # 获取预测结果
                 scores = output['scores']
                 labels = output['labels']
-                boxes = output['boxes']  # 这里已经是 XYXY 格式
+                boxes = output['boxes']  # XYXY 格式，相对于resized图片的坐标
                 
                 # 应用阈值过滤
                 select_mask = scores > threshold
-                
-                if select_mask.sum() > 0:
-                    # 过滤后的结果
-                    filtered_scores = scores[select_mask]
-                    filtered_labels = labels[select_mask]
-                    filtered_boxes = boxes[select_mask]
-                    
-                    # 将坐标从缩放后的图片尺寸转换回原始图片尺寸
-                    # processed_image.shape: [C, H, W]
-                    processed_h, processed_w = processed_image.shape[1], processed_image.shape[2]
-                    scale_x = original_size[0] / processed_w  # width scale
-                    scale_y = original_size[1] / processed_h  # height scale
-                    
-                    # 转换坐标到原始图片尺寸
-                    filtered_boxes[:, 0] *= scale_x  # x1
-                    filtered_boxes[:, 1] *= scale_y  # y1
-                    filtered_boxes[:, 2] *= scale_x  # x2
-                    filtered_boxes[:, 3] *= scale_y  # y2
-                    
-                    # 确保坐标在合理范围内
-                    filtered_boxes[:, 0] = torch.clamp(filtered_boxes[:, 0], 0, original_size[0])
-                    filtered_boxes[:, 1] = torch.clamp(filtered_boxes[:, 1], 0, original_size[1])
-                    filtered_boxes[:, 2] = torch.clamp(filtered_boxes[:, 2], 0, original_size[0])
-                    filtered_boxes[:, 3] = torch.clamp(filtered_boxes[:, 3], 0, original_size[1])
                 
                 # 准备输出文件
                 image_name = os.path.splitext(os.path.basename(image_path))[0]
@@ -119,6 +107,23 @@ def inference_batch_longyuan():
                 # 写入检测结果
                 with open(output_txt_path, 'w') as f:
                     if select_mask.sum() > 0:
+                        # 过滤后的结果
+                        filtered_scores = scores[select_mask]
+                        filtered_labels = labels[select_mask]
+                        filtered_boxes = boxes[select_mask]
+                        
+                        # 将坐标从resized图片尺寸转换回原始图片尺寸
+                        filtered_boxes[:, 0] *= scale_x  # x1
+                        filtered_boxes[:, 1] *= scale_y  # y1
+                        filtered_boxes[:, 2] *= scale_x  # x2
+                        filtered_boxes[:, 3] *= scale_y  # y2
+                        
+                        # 确保坐标在合理范围内（原始图片尺寸）
+                        filtered_boxes[:, 0] = torch.clamp(filtered_boxes[:, 0], 0, original_width)
+                        filtered_boxes[:, 1] = torch.clamp(filtered_boxes[:, 1], 0, original_height)
+                        filtered_boxes[:, 2] = torch.clamp(filtered_boxes[:, 2], 0, original_width)
+                        filtered_boxes[:, 3] = torch.clamp(filtered_boxes[:, 3], 0, original_height)
+                        
                         for j in range(len(filtered_scores)):
                             # 格式: 类别代码(0) x1 y1 x2 y2 置信度
                             # 因为是烟雾检测，类别代码统一为0
@@ -126,7 +131,10 @@ def inference_batch_longyuan():
                             x1, y1, x2, y2 = filtered_boxes[j].cpu().numpy()
                             confidence = filtered_scores[j].cpu().item()
                             
-                            f.write(f"{class_id} {x1:.2f} {y1:.2f} {x2:.2f} {y2:.2f} {confidence:.4f}\n")
+                            # 转换为整数像素坐标
+                            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+                            
+                            f.write(f"{class_id} {x1} {y1} {x2} {y2} {confidence:.4f}\n")
                 
                 # 打印进度
                 if (i + 1) % 10 == 0 or (i + 1) == len(image_files):
